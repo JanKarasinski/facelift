@@ -500,7 +500,7 @@ struct TypeHandler<QVariant> : public TypeHandlerBase
 {
     typedef QVariant QMLType;
 
-    static QString toString([[maybe_unused]]const QString &v)
+    static QString toString([[maybe_unused]]const QVariant &v)
     {
         return { R"("QVariant")" };
     }
