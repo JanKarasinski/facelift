@@ -500,6 +500,23 @@ struct TypeHandler<QString> : public TypeHandlerBase
 };
 
 
+template<>
+struct TypeHandler<QVariant> : public TypeHandlerBase
+{
+    typedef QVariant QMLType;
+
+    static QString toString([[maybe_unused]]const QVariant &v)
+    {
+        return { R"("QVariant")" };
+    }
+
+    static QVariant fromVariant(const QVariant &variant)
+    {
+        return variant;
+    }
+
+};
+
 template<typename ElementType>
 struct TypeHandler<QList<ElementType> >
 {
