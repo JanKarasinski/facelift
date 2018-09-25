@@ -28,17 +28,10 @@
 **
 **********************************************************************/
 
-#pragma once
+module facelift.ipc.dbus 1.0;
 
-#include <QDBusConnection>
-#include <QDBusMessage>
-#include <QDBusVirtualObject>
-#include <QDBusAbstractInterface>
-#include <QDBusInterface>
-#include <QDBusServiceWatcher>
-
-namespace facelift {
-namespace dbus {
-
-}
+interface ObjectRegistry {
+    readonly map<string> objects;
+    bool registerObject(string objectPath, string serviceName);
+    bool unregisterObject(string objectPath, string serviceName);
 }

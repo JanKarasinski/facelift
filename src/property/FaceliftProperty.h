@@ -30,6 +30,12 @@
 
 #pragma once
 
+#if defined(FaceliftPropertyLib_LIBRARY)
+#  define FaceliftPropertyLib_EXPORT Q_DECL_EXPORT
+#else
+#  define FaceliftPropertyLib_EXPORT Q_DECL_IMPORT
+#endif
+
 #include <vector>
 #include <assert.h>
 #include <QString>
@@ -42,7 +48,7 @@
 
 namespace facelift {
 
-class PropertyBase
+class FaceliftPropertyLib_EXPORT PropertyBase
 {
 
 public:
@@ -107,8 +113,6 @@ protected:
 
     void doBreakBinding();
 
-    void setGetterFunctionContext(QObject *context);
-
 private:
     void doTriggerChangeSignal();
 
@@ -122,7 +126,6 @@ private:
     bool m_asynchronousNotification = false;
 
 protected:
-    QObject *m_getterFunctionContext = nullptr;
     QMetaObject::Connection m_getterFunctionContextConnection;
     QVector<QMetaObject::Connection> m_connections;  /// The list of connections which this property is bound to
 
@@ -196,20 +199,14 @@ public:
         return value();
     }
 
-    Property &bind(QObject *context, const GetterFunction &f)
+    Property &bind(const GetterFunction &f)
     {
         breakBinding();
 
-        setGetterFunctionContext(context);
         m_getterFunction = f;
         reevaluate();
 
         return *this;
-    }
-
-    Property &bind(const GetterFunction &f)
-    {
-        return bind(nullptr, f);
     }
 
     void setValue(const Type &right)
@@ -499,7 +496,7 @@ public:
                 (facelift::ModelBase*)this, static_cast<void (facelift::ModelBase::*)(int,int)>(&facelift::ModelBase::dataChanged));
 
         this->beginResetModel();
-        this->reset(property.property->size(), [this, modelProperty](int index) {
+        this->reset(property.property->size(), [modelProperty](int index) {
             return modelProperty->elementAt(index);
         });
         this->endResetModel();

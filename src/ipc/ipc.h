@@ -32,8 +32,6 @@
 
 #include "ipc-common/ipc-common.h"
 
-#include "FaceliftProperty.h"
-
 #ifdef DBUS_IPC_ENABLED
 #include "dbus/ipc-dbus.h"
 
@@ -41,8 +39,6 @@ namespace facelift {
 
 using IPCMessage = ::facelift::dbus::DBusIPCMessage;
 using IPCProxyBinder = ::facelift::dbus::DBusIPCProxyBinder;
-using IPCAttachedPropertyFactory = ::facelift::dbus::DBusIPCAttachedPropertyFactory;
-using IPCAdapterFactoryManager = ::facelift::dbus::DBusIPCAdapterFactoryManager;
 
 template<typename InterfaceType>
 using IPCServiceAdapter = ::facelift::dbus::DBusIPCServiceAdapter<InterfaceType>;
@@ -63,8 +59,6 @@ using IPCServiceAdapter = LocalIPCServiceAdapter<Type>;
 template<typename AdapterType, typename IPCAdapterType>
 using IPCProxy = LocalIPCProxy<AdapterType, IPCAdapterType>;
 typedef LocalIPCMessage IPCMessage;
-typedef LocalIPCAttachedPropertyFactory IPCAttachedPropertyFactory;
-typedef LocalIPCAdapterFactoryManager IPCAdapterFactoryManager;
 using IPCProxyBinder = ::facelift::LocalIPCProxyBinder;
 
 }

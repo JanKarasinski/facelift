@@ -38,11 +38,20 @@
 #include <QJSValue>
 #include <QTimer>
 #include <QMap>
+#include <QPointer>
+
 #include <memory>
 
 #include <array>
 
 #include "FaceliftUtils.h"
+
+
+#if defined(FaceliftModelLib_LIBRARY)
+#  define FaceliftModelLib_EXPORT Q_DECL_EXPORT
+#else
+#  define FaceliftModelLib_EXPORT Q_DECL_IMPORT
+#endif
 
 
 #define STRINGIFY_(x) # x
@@ -56,7 +65,7 @@ template<typename ElementType>
 using Map = QMap<QString, ElementType>;
 
 
-class StructureBase
+class FaceliftModelLib_EXPORT StructureBase
 {
     Q_GADGET
 
@@ -71,14 +80,9 @@ public:
         return m_id;
     }
 
-    StructureBase()
-    {
-        m_id = s_nextID++;
-    }
+    StructureBase();
 
-    virtual ~StructureBase()
-    {
-    }
+    virtual ~StructureBase();
 
     void setId(ModelElementID id)
     {
@@ -101,12 +105,13 @@ private:
 template<typename Type>
 QString enumToString(const Type &v)
 {
+    Q_UNUSED(v);
     static_assert(!std::is_enum<Type>::value, "Missing specialization of enumToString() template");
     return "";
 }
 
 
-struct BinarySeralizer
+struct FaceliftModelLib_EXPORT BinarySeralizer
 {
     BinarySeralizer(QByteArray &array) : stream(&array, QIODevice::WriteOnly)
     {
@@ -117,7 +122,7 @@ struct BinarySeralizer
     QDataStream stream;
 };
 
-struct TypeHandlerBase
+struct FaceliftModelLib_EXPORT TypeHandlerBase
 {
 
     template<typename Type>
@@ -677,7 +682,7 @@ using PropertyGetter = const PropertyType &(*)();
 class InterfaceBase;
 
 
-class ServiceRegistry : public QObject
+class FaceliftModelLib_EXPORT ServiceRegistry : public QObject
 {
     Q_OBJECT
 
@@ -704,7 +709,7 @@ private:
 /**
  * Base interface which every interface inherits from
  */
-class InterfaceBase : public QObject
+class FaceliftModelLib_EXPORT InterfaceBase : public QObject
 {
     Q_OBJECT
 
@@ -749,6 +754,17 @@ public:
         return m_interfaceName;
     }
 
+    void setComponentCompleted() {
+        if (!m_componentCompleted) {
+            m_componentCompleted = true;
+            emit componentCompleted();
+        }
+    }
+
+    bool isComponentCompleted() const {
+        return m_componentCompleted;
+    }
+
     Q_SIGNAL void componentCompleted();
 
 protected:
@@ -767,6 +783,7 @@ private:
     QString m_interfaceName;
 
     bool m_ready = true;
+    bool m_componentCompleted = false;
 
 };
 
@@ -851,7 +868,7 @@ public:
 };
 
 
-class ModelBase : public QObject
+class FaceliftModelLib_EXPORT ModelBase : public QObject
 {
     Q_OBJECT
 
@@ -941,7 +958,7 @@ public:
 /**
  * Base class for all generated Module classes
  */
-class ModuleBase
+class FaceliftModelLib_EXPORT ModuleBase
 {
 
 public:
@@ -953,7 +970,7 @@ public:
 };
 
 
-class StructureFactoryBase : public QObject
+class FaceliftModelLib_EXPORT StructureFactoryBase : public QObject
 {
 
     Q_OBJECT
@@ -989,13 +1006,17 @@ struct TypeHandler<Type *, typename std::enable_if<std::is_base_of<InterfaceBase
 {
     typedef typename Type::QMLFrontendType* QMLType;
 
-    static void write(BinarySeralizer &msg, const Type &param)
+    static void write(BinarySeralizer &msg, const Type* param)
     {
+        Q_UNUSED(msg);
+        Q_UNUSED(param);
         NOT_IMPLEMENTED();
     }
 
-    static void read(BinarySeralizer &msg, Type &param)
+    static void read(BinarySeralizer &msg, Type* &param)
     {
+        Q_UNUSED(msg);
+        Q_UNUSED(param);
         NOT_IMPLEMENTED();
     }
 
@@ -1089,8 +1110,9 @@ class TAsyncAnswerMaster
 {
 
 public:
-    TAsyncAnswerMaster(CallBack callback) : m_callback(callback)
+    TAsyncAnswerMaster(QObject* context, CallBack callback) : m_callback(callback)
     {
+        m_context = context;
     }
 
     ~TAsyncAnswerMaster()
@@ -1104,7 +1126,8 @@ public:
     void call(const Types & ... args)
     {
         setAnswered();
-        m_callback(args ...);
+        if (m_context)
+            m_callback(args ...);
     }
 
 private:
@@ -1115,9 +1138,9 @@ private:
     }
 
 protected:
-    bool m_isAlreadyAnswered = false;
     CallBack m_callback;
-
+    bool m_isAlreadyAnswered = false;
+    QPointer<QObject> m_context;
 };
 
 
@@ -1131,7 +1154,7 @@ public:
     {
     public:
         using TAsyncAnswerMaster<CallBack>::m_callback;
-        Master(CallBack callback) : TAsyncAnswerMaster<CallBack>(callback)
+        Master(QObject* context, CallBack callback) : TAsyncAnswerMaster<CallBack>(context, callback)
         {
         }
     };
@@ -1140,7 +1163,7 @@ public:
     {
     }
 
-    AsyncAnswer(CallBack callback) : m_master(new Master(callback))
+    AsyncAnswer(QObject* context, CallBack callback) : m_master(new Master(context, callback))
     {
     }
 
@@ -1154,7 +1177,7 @@ public:
         return *this;
     }
 
-    void operator()(const ReturnType &returnValue)
+    void operator()(const ReturnType &returnValue) const
     {
         m_master->call(returnValue);
     }
@@ -1174,7 +1197,7 @@ public:
     public:
         using TAsyncAnswerMaster<CallBack>::m_callback;
 
-        Master(CallBack callback) : TAsyncAnswerMaster<CallBack>(callback)
+        Master(QObject* context, CallBack callback) : TAsyncAnswerMaster<CallBack>(context, callback)
         {
         }
     };
@@ -1183,7 +1206,7 @@ public:
     {
     }
 
-    AsyncAnswer(CallBack callback) : m_master(new Master(callback))
+    AsyncAnswer(QObject* context, CallBack callback) : m_master(new Master(context, callback))
     {
     }
 

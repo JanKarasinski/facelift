@@ -19,11 +19,19 @@ option(FACELIFT_BUILD_EXAMPLES "Enable build of examples" ON)
 option(FACELIFT_BUILD_TESTS "Enable build of tests" OFF)
 option(FACELIFT_ENABLE_DESKTOP_DEV_TOOLS "Enable desktop development tools" ${DEBUG_BUILD})
 
+if (FACELIFT_ENABLE_DBUS_IPC AND FACELIFT_DISABLE_DBUS_IPC)
+    message(FATAL_ERROR "DBus IPC cannot be enabled and disabled at the same time.")
+else()
+    if (FACELIFT_ENABLE_DBUS_IPC OR (NOT FACELIFT_DISABLE_DBUS_IPC))
+        set(FACELIFT_DBUS_IPC_ENABLED ON)
+    endif()
+endif()
+
 find_package(Qt5 REQUIRED Core Gui Qml Quick)
 
 set(CMAKE_CONFIG_INSTALLATION_PATH ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 if(NOT MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
 endif()
@@ -45,7 +53,11 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
 
 function(add_example_script NAME MAIN_QML_FILE)
     set(QML_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${MAIN_QML_FILE})
-    configure_file(${PROJECT_SOURCE_DIR}/examples/launch-example.sh ${PROJECT_BINARY_DIR}/examples/launch-${NAME}.sh @ONLY)
+    if(WIN32)
+        configure_file(${PROJECT_SOURCE_DIR}/examples/launch-example.bat.in ${PROJECT_BINARY_DIR}/examples/launch-${NAME}.bat @ONLY)
+    else()
+        configure_file(${PROJECT_SOURCE_DIR}/examples/launch-example.sh ${PROJECT_BINARY_DIR}/examples/launch-${NAME}.sh @ONLY)
+    endif()
 endfunction()
 
 if(FACELIFT_ENABLE_CODEGEN)

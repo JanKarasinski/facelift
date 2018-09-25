@@ -43,11 +43,12 @@
 namespace facelift {
 
 class IPCAttachedPropertyFactoryBase;
+class IPCServiceAdapterBase;
 
 /*!
  * This is the base class which all QML frontends extend
  */
-class QMLFrontendBase : public QObject, public QQmlParserStatus
+class FaceliftModelLib_EXPORT QMLFrontendBase : public QObject, public QQmlParserStatus
 {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
@@ -93,7 +94,7 @@ public:
 
     void componentComplete() override
     {
-        emit m_provider->componentCompleted();
+        m_provider->setComponentCompleted();
     }
 
 protected:
@@ -132,6 +133,7 @@ protected:
     }
 
     friend class IPCAttachedPropertyFactoryBase;
+    friend class IPCServiceAdapterBase;
 
 private:
     InterfaceBase *m_provider = nullptr;
@@ -161,7 +163,7 @@ public:
     {
     }
 
-    virtual const QString &implementationID()
+    const QString &implementationID() override
     {
         return m_provider.implementationID();
     }
@@ -169,7 +171,7 @@ public:
     void componentComplete() override
     {
         // notify anyone interested that we are ready (such as an IPC attached property)
-        emit m_provider.componentCompleted();
+        m_provider.setComponentCompleted();
     }
 
 private:
@@ -238,7 +240,7 @@ typename ProviderType::QMLFrontendType *getQMLFrontend(ProviderType *provider)
 }
 
 
-class ModelListModelBase : public QAbstractListModel
+class FaceliftModelLib_EXPORT ModelListModelBase : public QAbstractListModel
 {
     Q_OBJECT
 

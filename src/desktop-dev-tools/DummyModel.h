@@ -167,6 +167,7 @@ struct DummyModelTypeHandler<QList<ElementType> >
         value.clear();
         auto array = json.toArray();
         for (const auto &jsonObject : array) {
+            Q_UNUSED(jsonObject);
         }
     }
 
@@ -378,7 +379,7 @@ protected:
 
     void addWidget(PropertyWidgetBase &widget);
 
-    void appendLog(QString textToAppend);
+    void appendLog(QString textToAppend) const;
 
 private:
     Ui_DummyModelPanel *ui = nullptr;
@@ -479,7 +480,8 @@ public:
     }
 
     template<typename ListElementType>
-    static QList<ListElementType> modelAsList(const ModelProperty<ListElementType> &property) {
+    static QList<ListElementType> modelAsList(const ModelProperty<ListElementType> &property)
+    {
         auto size = property.size();
         QList<ListElementType> list;
         for (int i = 0; i < size; i++) {
@@ -513,7 +515,7 @@ public:
         auto jsonArray = jsonValue.toArray();
         auto size = jsonArray.size();
         for (int i = 0; i < size; i++) {
-            ListElementType e;
+            ListElementType e {};
             DummyModelTypeHandler<ListElementType>::readJSON(jsonArray[i], e);
             elements.append(e);
         }
@@ -656,7 +658,7 @@ public:
 
     template<typename ... ParameterTypes>
     void logMethodCall(const QString methodName, const ::std::array<const char *, sizeof ... (ParameterTypes)> &parameterNames,
-            const ParameterTypes & ... parameters)
+            const ParameterTypes & ... parameters) const
     {
         Q_UNUSED(parameterNames);
 

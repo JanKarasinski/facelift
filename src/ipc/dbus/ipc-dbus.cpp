@@ -54,6 +54,37 @@
 namespace facelift {
 namespace dbus {
 
+QDBusPendingCallWatcher* DBusIPCMessage::asyncCall(const QDBusConnection &connection)
+{
+    if (m_outputPayload) {
+        m_message << m_outputPayload->getContent();
+    }
+    qDebug() << "Sending IPC message : " << toString();
+    auto reply = new QDBusPendingCallWatcher(connection.asyncCall(m_message));
+    return reply;
+}
+
+DBusIPCMessage DBusIPCMessage::call(const QDBusConnection &connection)
+{
+    if (m_outputPayload) {
+        m_message << m_outputPayload->getContent();
+    }
+    qDebug() << "Sending IPC message : " << toString();
+    auto replyDbusMessage = connection.call(m_message);
+    DBusIPCMessage reply(replyDbusMessage);
+    return reply;
+}
+
+
+void DBusIPCMessage::send(const QDBusConnection &connection)
+{
+    if (m_outputPayload) {
+        m_message << m_outputPayload->getContent();
+    }
+    qDebug() << "Sending IPC message : " << toString();
+    bool successful = connection.send(m_message);
+    Q_ASSERT(successful);
+}
 
 DBusManager::DBusManager() : m_busConnection(QDBusConnection::sessionBus())
 {
@@ -64,7 +95,7 @@ DBusManager::DBusManager() : m_busConnection(QDBusConnection::sessionBus())
 
 }
 
-facelift::ipc::ObjectRegistry &DBusManager::objectRegistry()
+facelift::ipc::dbus::ObjectRegistry &DBusManager::objectRegistry()
 {
     if (m_objectRegistry == nullptr) {
         m_objectRegistry = new DBusObjectRegistry(*this);
@@ -81,33 +112,6 @@ DBusManager &DBusManager::instance()
     return i;
 }
 
-DBusIPCAdapterFactoryManager &DBusIPCAdapterFactoryManager::instance()
-{
-    static DBusIPCAdapterFactoryManager factory;
-    return factory;
-}
-
-DBusIPCServiceAdapterBase *DBusIPCAttachedPropertyFactory::qmlAttachedProperties(QObject *object)
-{
-    auto provider = getProvider(object);
-
-    DBusIPCServiceAdapterBase *serviceAdapter = nullptr;
-
-    if (provider != nullptr) {
-        auto interfaceID = provider->interfaceID();
-        auto factory = DBusIPCAdapterFactoryManager::instance().getFactory(interfaceID);
-
-        if (factory != nullptr) {
-            serviceAdapter = factory(provider);
-        } else {
-            qFatal("No factory found for interface '%s'", qPrintable(interfaceID));
-        }
-    } else {
-        qFatal("Can't attach IPC to object with bad type: %s", object->metaObject()->className());
-    }
-
-    return serviceAdapter;
-}
 
 bool DBusIPCServiceAdapterBase::handleMessage(const QDBusMessage &dbusMsg, const QDBusConnection &connection)
 {
@@ -122,15 +126,20 @@ bool DBusIPCServiceAdapterBase::handleMessage(const QDBusMessage &dbusMsg, const
     } else if (dbusMsg.interface() == PROPERTIES_INTERFACE_NAME) {
         // TODO
     } else {
+        bool sendReply = true;
         if (requestMessage.member() == GET_PROPERTIES_MESSAGE_NAME) {
             serializePropertyValues(replyMessage);
         } else {
             auto handlingResult = handleMethodCallMessage(requestMessage, replyMessage);
-            if (handlingResult != IPCHandlingResult::OK) {
+            if (handlingResult == IPCHandlingResult::INVALID) {
                 replyMessage = requestMessage.createErrorReply("Invalid arguments", "TODO");
+            } else if (handlingResult == IPCHandlingResult::OK_ASYNC) {
+                sendReply = false;
             }
         }
-        replyMessage.send(connection);
+        if (sendReply) {
+            replyMessage.send(connection);
+        }
         return true;
     }
 
@@ -145,7 +154,7 @@ DBusIPCServiceAdapterBase::~DBusIPCServiceAdapterBase()
     }
 }
 
-void DBusIPCServiceAdapterBase::init(InterfaceBase *service)
+void DBusIPCServiceAdapterBase::doInit(InterfaceBase *service)
 {
     m_service = service;
     if (!m_alreadyInitialized) {
@@ -184,7 +193,7 @@ void DBusIPCProxyBinder::bindToIPC()
             m_serviceName = registry.objects()[objectPath()];
         }
 
-        QObject::connect(&registry, &facelift::ipc::ObjectRegistry::objectsChanged, this, [this, &registry] () {
+        QObject::connect(&registry, &facelift::ipc::dbus::ObjectRegistry::objectsChanged, this, [this, &registry] () {
             if (registry.objects().contains(objectPath()) && !m_inProcess) {
                 auto serviceName = registry.objects()[objectPath()];
                 if (serviceName != m_serviceName) {
@@ -247,8 +256,7 @@ QString DBusIPCMessage::toString() const
     return str;
 }
 
-}
 
-int InterfacePropertyHandlerBase::s_nextInstanceID = 0;
+}
 
 }

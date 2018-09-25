@@ -1,4 +1,4 @@
-{#*********************************************************************
+/**********************************************************************
 **
 ** Copyright (C) 2018 Luxoft Sweden AB
 **
@@ -26,31 +26,11 @@
 **
 ** SPDX-License-Identifier: MIT
 **
-*********************************************************************#}
+**********************************************************************/
 
-/****************************************************************************
-** This is an auto-generated file.
-** Do not edit! All changes made to it will be lost.
-****************************************************************************/
+import tests.combined 1.0
 
-#pragma once
-
-{{classExportDefines}}
-
-#include "ServiceMonitor.h"
-
-{% for interface in module.interfaces %}
-#include "{{interface.fullyQualifiedPath}}Monitor.h"
-{% endfor %}
-
-{{module.namespaceCppOpen}}
-
-class {{classExport}} ModuleMonitor : public facelift::ModuleMonitorBase {
-
-public:
-    static void registerTypes();
-
-};
-
-{{module.namespaceCppClose}}
-
+CombinedInterfaceIPCAdapter {
+    enabled: true
+    service: CombinedInterfaceSingleton
+}

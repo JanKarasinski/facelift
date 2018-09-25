@@ -42,6 +42,8 @@
 
 #pragma once
 
+{{classExportDefines}}
+
 #include <QtCore>
 #include <QQmlEngine>
 
@@ -56,11 +58,13 @@
 {% for operation in interface.operations -%}
 {% for parameter in operation.parameters -%}
 {{- printif(parameter.type.requiredInclude) }}
+{{- printif(parameter.type.requiredQMLInclude) }}
 {%- endfor %}
 {%- endfor %}
 {% for event in interface.signals -%}
 {% for parameter in event.parameters -%}
 {{- printif(parameter.type.requiredInclude) }}
+{{- printif(parameter.type.requiredQMLInclude) }}
 {%- endfor %}
 {%- endfor %}
 
@@ -75,7 +79,7 @@
 /**
  * This is the class registered as a QML component for the {{interface}} interface
  */
-class {{class}}QMLFrontend : public facelift::QMLFrontendBase
+class {{classExport}} {{class}}QMLFrontend : public facelift::QMLFrontendBase
 {
     Q_OBJECT
 
@@ -100,22 +104,18 @@ public:
         m_{{property}}Model.init(m_provider->{{property}}());
         {% endif %}
         {% endfor %}
+
         {% for event in interface.signals %}
-        {% if event.parameters|hasContainerParameter %}
+        {% if event.parameters|hasQMLIncompatibleParameter %}
         connect(m_provider, &{{class}}::{{event.name}}, this, [this] (
             {%- set comma = joiner(", ") -%}
             {%- for parameter in event.parameters -%}
-                {{ comma() }}{{parameter.cppType}} {{parameter.name}}
+                {{ comma() }}{{parameter.interfaceCppType}} {{parameter.name}}
             {%- endfor -%}) {
             emit {{class}}QMLFrontend::{{event.name}}(
             {%- set comma2 = joiner(", ") -%}
             {%- for parameter in event.parameters -%}
-                {{comma2()}}
-                {%- if parameter.type.is_list or parameter.type.is_map -%}
-                    facelift::toQMLCompatibleType({{parameter.name}})
-                {%- else -%}
-                    {{parameter.name}}
-                {%- endif -%}
+                {{comma2()}} facelift::toQMLCompatibleType({{parameter.name}})
             {%- endfor -%});
         });
         {% else %}
@@ -140,8 +140,8 @@ public:
     {% for property in interface.properties %}
     {{- printif(property.comment)}}
     {% if property.type.is_model %}
-    Q_PROPERTY(QObject* {{property}} READ {{property}} NOTIFY {{property.name}}Changed)
-    QObject* {{property}}()
+    Q_PROPERTY(QAbstractListModel* {{property}} READ {{property}} NOTIFY {{property.name}}Changed)
+    QAbstractListModel* {{property}}()
     {
         return &m_{{property}}Model;
     }
@@ -204,7 +204,7 @@ public:
         {%- for parameter in operation.parameters -%}
             {{ comma() }}{{parameter.type.qmlCompatibleType}} {{parameter.name}}
         {%- endfor -%}
-        {{ comma() }}QJSValue callback)
+        {{ comma() }}QJSValue callback){% if operation.is_const %} const{% endif %}
     {
         Q_ASSERT(m_provider);
         m_provider->{{operation}}(
@@ -212,10 +212,10 @@ public:
             {%- if parameter.cppType == parameter.type.qmlCompatibleType -%}
             {{parameter.name}},
             {%- else -%}
-            facelift::toProviderCompatibleType<{{parameter.cppType}}, {{parameter.type.qmlCompatibleType}}>({{parameter.name}})
+            facelift::toProviderCompatibleType<{{parameter.cppType}}, {{parameter.type.qmlCompatibleType}}>({{parameter.name}}),
             {%- endif -%}
             {%- endfor -%}
-            facelift::AsyncAnswer<{{operation.cppType}}>([this, callback]({% if operation.hasReturnValue %}const {{operation.cppType}} &returnValue{% endif %}) mutable {
+            facelift::AsyncAnswer<{{operation.cppType}}>(this, [this, callback]({% if operation.hasReturnValue %}const {{operation.cppType}} &returnValue{% endif %}) mutable {
             callJSCallback({% if operation.hasReturnValue %}returnValue, {% endif %}callback);
         }));
     }

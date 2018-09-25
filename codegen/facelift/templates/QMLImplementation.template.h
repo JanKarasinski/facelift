@@ -35,6 +35,8 @@
 
 #pragma once
 
+{{classExportDefines}}
+
 #include "QMLModel.h"
 
 #include "{{interface}}PropertyAdapter.h"
@@ -48,7 +50,7 @@ class {{interface}}QMLImplementation;
  * This class implements the actual service interface and wraps the object instantiated from QML, which implements
  * the actual logic
  */
-class {{interface}}QMLImplementationFrontend : public {{interface}}PropertyAdapter,
+class {{classExport}} {{interface}}QMLImplementationFrontend : public {{interface}}PropertyAdapter,
                                                public facelift::QMLModelImplementationFrontend<{{interface}}QMLImplementation>
 {
     Q_OBJECT
@@ -62,7 +64,7 @@ public:
     {% for operation in interface.operations %}
     {% if operation.isAsync %}
     void {{operation}}(
-        {%- for parameter in operation.parameters -%}{{parameter.cppType}} /*{{parameter.name}}*/, {% endfor %}facelift::AsyncAnswer<{{operation.cppType}}> /*answer*/) override
+        {%- for parameter in operation.parameters -%}{{parameter.cppType}} /*{{parameter.name}}*/, {% endfor %}facelift::AsyncAnswer<{{operation.cppType}}> /*answer*/){% if operation.is_const %} const{% endif %} override
     {
         Q_ASSERT(false);  // TODO: implement
     }
@@ -73,7 +75,7 @@ public:
         {%- for parameter in operation.parameters -%}
         {{ comma() }}{{parameter.cppType}} {{parameter.name}}
         {%- endfor -%}
-    ) override;
+    ){% if operation.is_const %} const{% endif %} override;
     {% endif %}
 
     {% endfor %}
@@ -95,7 +97,7 @@ public:
 /**
  * This class defines the QML component which is used when implementing a model using QML
  */
-class {{interface}}QMLImplementation : public facelift::ModelQMLImplementation<{{interface}}QMLImplementationFrontend>
+class {{classExport}} {{interface}}QMLImplementation : public facelift::ModelQMLImplementation<{{interface}}QMLImplementationFrontend>
 {
     Q_OBJECT
 
@@ -310,7 +312,7 @@ public:
     Q_INVOKABLE void {{event}}(
     {%- set comma = joiner(", ") -%}
     {%- for parameter in event.parameters -%}
-    {{ comma() }}{{parameter.cppType}} {{parameter.name}}
+    {{ comma() }}{{parameter.interfaceCppType}} {{parameter.name}}
     {%- endfor -%} )
     {
         emit m_interface->{{event.name}}(
@@ -348,7 +350,7 @@ inline {{operation.interfaceCppType}} {{interface}}QMLImplementationFrontend::{{
     {%- set comma = joiner(", ") -%}
     {%- for parameter in operation.parameters -%}
     {{ comma() }}{{parameter.cppType}} {{parameter.name}}
-    {%- endfor -%} )
+    {%- endfor -%} ){% if operation.is_const %} const{% endif %}
 {
     return m_impl->{{operation.name}}(
         {%- set comma = joiner(", ") -%}

@@ -39,6 +39,8 @@
 
 #pragma once
 
+{{classExportDefines}}
+
 #include <QtCore>
 #include "FaceliftModel.h"
 
@@ -65,9 +67,11 @@
 {{module.namespaceCppOpen}}
 
 class {{class}}QMLFrontend;
+class {{class}}IPCAdapter;
+class {{class}}IPCProxy;
 
 {% if hasReadyFlags %}
-class {{class}}ReadyFlags
+class {{classExport}} {{class}}ReadyFlags
 {
     Q_GADGET
 
@@ -87,7 +91,7 @@ public:
 {% endif %}
 
 {{interface.comment}}
-class {{class}} : public facelift::InterfaceBase {
+class {{classExport}} {{class}} : public facelift::InterfaceBase {
 
     Q_OBJECT
 
@@ -99,7 +103,9 @@ public:
     static constexpr const int VERSION_MAJOR = {{module.majorVersion}};
     static constexpr const int VERSION_MINOR = {{module.minorVersion}};
 
-    typedef {{class}}QMLFrontend QMLFrontendType;
+    using QMLFrontendType = {{class}}QMLFrontend;
+    using IPCAdapterType = {{class}}IPCAdapter;
+    using IPCProxyType = {{class}}IPCProxy;
 
     friend QMLFrontendType;
 
@@ -159,12 +165,12 @@ public:
 
     {% if operation.isAsync %}
     virtual void {{operation}}(
-        {%- for parameter in operation.parameters -%} {{parameter.cppType}} {{parameter.name}}, {% endfor %}facelift::AsyncAnswer<{{operation.cppType}}> answer) = 0;
+        {%- for parameter in operation.parameters -%} {{parameter.cppType}} {{parameter.name}}, {% endfor %}facelift::AsyncAnswer<{{operation.cppType}}> answer){% if operation.is_const %} const{% endif %} = 0;
     {% else %}
 
     {{operation.comment}}
     virtual {{operation.interfaceCppType}} {{operation}}({% set comma = joiner(",") %}
-        {% for parameter in operation.parameters %}{{ comma() }}{{parameter.cppType}} {{parameter.name}}{% endfor %}) = 0;
+        {% for parameter in operation.parameters %}{{ comma() }}{{parameter.cppType}} {{parameter.name}}{% endfor %}){% if operation.is_const %} const{% endif %} = 0;
 
     {% endif %}
 
@@ -172,7 +178,7 @@ public:
     {% for event in interface.signals %}
     {{event.comment}}
     Q_SIGNAL void {{event}}({% set comma = joiner(",") -%}
-        {% for parameter in event.parameters -%}{{ comma() }}{{parameter.cppType}} {{parameter.name}}{% endfor %});
+        {% for parameter in event.parameters -%}{{ comma() }}{{parameter.interfaceCppType}} {{parameter.name}}{% endfor %});
     {% endfor %}
 
 

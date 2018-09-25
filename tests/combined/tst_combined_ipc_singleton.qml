@@ -1,4 +1,4 @@
-{#*********************************************************************
+/**********************************************************************
 **
 ** Copyright (C) 2018 Luxoft Sweden AB
 **
@@ -26,31 +26,38 @@
 **
 ** SPDX-License-Identifier: MIT
 **
-*********************************************************************#}
+**********************************************************************/
 
-/****************************************************************************
-** This is an auto-generated file.
-** Do not edit! All changes made to it will be lost.
-****************************************************************************/
+import QtTest 1.2
+import tests.combined 1.0
+import "check_combined.js" as Check
 
-#pragma once
+TestCase {
+    name: "combined-ipc-singleton"
 
-{{classExportDefines}}
+    property var api: CombinedInterfaceIPCProxySingleton
 
-#include "ServiceMonitor.h"
 
-{% for interface in module.interfaces %}
-#include "{{interface.fullyQualifiedPath}}Monitor.h"
-{% endfor %}
+    CombinedSignalSpys {
+        id: spy
+        dest: api
+    }
 
-{{module.namespaceCppOpen}}
 
-class {{classExport}} ModuleMonitor : public facelift::ModuleMonitorBase {
+    function initTestCase() {
+        Check.defaults();
+        Check.initialized();
+    }
 
-public:
-    static void registerTypes();
+    function test_methods() {
+        Check.methods();
+    }
 
-};
+    function test_setter() {
+        Check.setter(api);
+    }
 
-{{module.namespaceCppClose}}
-
+    function test_signals() {
+        Check.signals();
+    }
+}

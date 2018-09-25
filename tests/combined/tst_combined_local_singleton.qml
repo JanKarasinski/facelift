@@ -28,10 +28,55 @@
 **
 **********************************************************************/
 
-module facelift.ipc 1.0;
+import QtTest 1.2
+import tests.combined 1.0
+import "check_combined.js" as Check
 
-interface ObjectRegistry {
-    readonly map<string> objects;
-    bool registerObject(string objectPath, string serviceName);
-    bool unregisterObject(string objectPath, string serviceName);
+TestCase {
+    name: "combined-local-singleton"
+
+    property var api: CombinedInterfaceSingleton
+
+
+    SignalSpy {
+        id: readyFlagsChangedSpy
+        target: api
+        signalName: "readyFlagsChanged"
+    }
+
+    CombinedSignalSpys {
+        id: spy
+        dest: api
+    }
+
+
+    function initTestCase() {
+        compare(api.interfaceProperty, null);
+
+        // hasReadyFlag is only supported by C++ backend:
+        if (!api.qmlImplementationUsed) {
+            verify(!api.readyFlags.readyProperty);
+        }
+
+        Check.defaults();
+        Check.initialized();
+
+        if (!api.qmlImplementationUsed) {
+            readyFlagsChangedSpy.wait(2000);
+            verify(api.readyFlags.readyProperty);
+            compare(api.readyProperty, 42);
+        }
+    }
+
+    function test_methods() {
+        Check.methods();
+    }
+
+    function test_setter() {
+        Check.setter();
+    }
+
+    function test_signals() {
+        Check.signals();
+    }
 }

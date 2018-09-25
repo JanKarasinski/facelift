@@ -35,6 +35,8 @@
 
 #pragma once
 
+{{classExportDefines}}
+
 #include <QtQml>
 #include "ipc.h"
 
@@ -44,13 +46,13 @@
 
 {{module.namespaceCppOpen}}
 
-class ModuleIPC
+class {{classExport}} ModuleIPC
 {
 public:
     static void registerQmlTypes(const char* uri, int majorVersion = {{module.majorVersion}}, int minorVersion = {{module.minorVersion}})
     {
         {% for interface in module.interfaces %}
-        // facelift::qmlRegisterType<{{interface}}IPCAdapter>(uri, "{{interface}}IPCAdapter");
+        facelift::qmlRegisterType<{{interface}}IPCAdapter>(uri, "{{interface}}IPCAdapter");
         facelift::IPCAdapterFactoryManager::registerType<{{interface}}IPCAdapter>();
         facelift::registerQmlComponent<{{interface}}IPCProxy>(uri, "{{interface}}IPCProxy");
 
